@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { json } from "@remix-run/node";
-import { useActionData, useNavigation, useSubmit } from "@remix-run/react";
+import { useActionData, useNavigation, useSubmit, Form } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -12,6 +12,7 @@ import {
   List,
   Link,
   InlineStack,
+  TextField,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
@@ -22,46 +23,47 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($input: ProductInput!) {
-        productCreate(input: $input) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        input: {
-          title: `${color} Snowboard`,
-          variants: [{ price: Math.random() * 100 }],
-        },
-      },
-    }
-  );
-  const responseJson = await response.json();
+  // const { admin } = await authenticate.admin(request);
+  // const color = ["Red", "Orange", "Yellow", "Green"][
+  //   Math.floor(Math.random() * 4)
+  // ];
+  // const response = await admin.graphql(
+  //   `#graphql
+  //     mutation populateProduct($input: ProductInput!) {
+  //       productCreate(input: $input) {
+  //         product {
+  //           id
+  //           title
+  //           handle
+  //           status
+  //           variants(first: 10) {
+  //             edges {
+  //               node {
+  //                 id
+  //                 price
+  //                 barcode
+  //                 createdAt
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }`,
+  //   {
+  //     variables: {
+  //       input: {
+  //         title: `${color} Snowboard`,
+  //         variants: [{ price: Math.random() * 100 }],
+  //       },
+  //     },
+  //   }
+  // );
+  // const responseJson = await response.json();
 
-  return json({
-    product: responseJson.data.productCreate.product,
-  });
+  // return json({
+  //   product: responseJson.data.productCreate.product,
+  // });
+  return null;
 };
 
 export default function Index() {
@@ -84,10 +86,10 @@ export default function Index() {
 
   return (
     <Page>
-      <ui-title-bar title="Remix app template">
-        <button variant="primary" onClick={generateProduct}>
+      <ui-title-bar title="Shop2App Assignment">
+        {/* <button variant="primary" onClick={generateProduct}>
           Generate a product
-        </button>
+        </button> */}
       </ui-title-bar>
       <BlockStack gap="500">
         <Layout>
@@ -96,7 +98,7 @@ export default function Index() {
               <BlockStack gap="500">
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
-                    Congrats on creating a new Shopify app 🎉
+                    Congrats on creating a new Shopify app 🎉. It has hot reloading i
                   </Text>
                   <Text variant="bodyMd" as="p">
                     This embedded app template uses{" "}
@@ -141,9 +143,9 @@ export default function Index() {
                   </Text>
                 </BlockStack>
                 <InlineStack gap="300">
-                  <Button loading={isLoading} onClick={generateProduct}>
+                  {/* <Button loading={isLoading} onClick={generateProduct}>
                     Generate a product
-                  </Button>
+                  </Button> */}
                   {actionData?.product && (
                     <Button
                       url={`shopify:admin/products/${productId}`}
@@ -170,8 +172,24 @@ export default function Index() {
                 )}
               </BlockStack>
             </Card>
+            <Card>
+              <BlockStack gap={500}>
+                <BlockStack gap={200}>
+                  <Text as="h2" variant="headingMd">
+                    Create a Product
+                  </Text>
+                </BlockStack>
+                <BlockStack gap={200}>
+                  <Form method="post">
+                    <input type="text" name="productName" placeholder="Enter Product Name" />
+                    <input type="number" name="price" placeholder="Price of Product" />
+                    <button type="submit">Create Product</button>
+                  </Form>
+                </BlockStack>
+              </BlockStack>
+            </Card>
           </Layout.Section>
-          <Layout.Section variant="oneThird">
+          {/* <Layout.Section variant="oneThird">
             <BlockStack gap="500">
               <Card>
                 <BlockStack gap="200">
@@ -272,7 +290,7 @@ export default function Index() {
                 </BlockStack>
               </Card>
             </BlockStack>
-          </Layout.Section>
+          </Layout.Section> */}
         </Layout>
       </BlockStack>
     </Page>

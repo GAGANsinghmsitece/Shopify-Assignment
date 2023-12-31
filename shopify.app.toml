@@ -1,3 +1,27 @@
-# This file stores configurations for your Shopify app.
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
+name = "integrated-merchant-app"
+client_id = "c5f98214f555a32dc1aaf6d982e1c407"
+application_url = "https://distribute-hormone-platinum-tournament.trycloudflare.com"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://distribute-hormone-platinum-tournament.trycloudflare.com/auth/callback",
+  "https://distribute-hormone-platinum-tournament.trycloudflare.com/auth/shopify/callback",
+  "https://distribute-hormone-platinum-tournament.trycloudflare.com/api/auth/callback"
+]
+
+[webhooks]
+api_version = "2023-10"
+
+[pos]
+embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = "shop2app-gagan.myshopify.com"
