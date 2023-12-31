@@ -18,12 +18,12 @@ const ProductList = ({ products }) => {
       const { node } = products[i];
       const { id, title } = node;
       const price = products[i]?.node?.variants?.edges[0]?.node?.price;
-      console.log(price);
       let currentProduct = [];
       currentProduct.push(title);
       currentProduct.push(price);
       currentProducts.push(currentProduct);
     }
+
     setRows(currentProducts);
   }, [products]);
   return (

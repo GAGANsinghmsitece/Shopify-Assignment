@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { json } from "@remix-run/node";
 import { useActionData, useNavigation, useSubmit, Form, useLoaderData } from "@remix-run/react";
 import {
@@ -18,14 +18,14 @@ import {
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import ProductList from "../shared/components/ProductList/ProductList";
-
+import styles from "../styles/shared.css";
 export const loader = async ({ request }) => {
   try {
     const { admin } = await authenticate.admin(request);
     const response = await admin.graphql(
       `#graphql
       query {
-        products(first: 10, reverse: true) {
+        products(first: 100,reverse:true) {
           edges {
             node {
               id
@@ -127,6 +127,8 @@ export default function Index() {
   const actionData = useActionData();
   const fetchedProductsResponse = useLoaderData();
   const [products, setProduct] = useState(null);
+  const navigation = useNavigation();
+  const formRef = useRef(null);
 
   useEffect(() => {
     if (fetchedProductsResponse?.error) {
@@ -138,19 +140,17 @@ export default function Index() {
 
 
   useEffect(() => {
+    console.log(actionData);
     if (actionData?.error) {
       shopify.toast.show(actionData.error);
     } else if (actionData?.product) {
       shopify.toast.show("Product created successfully!!!");
+      formRef.current?.reset();
     }
   }, [actionData]);
-  console.log("Shop2App", products, fetchedProductsResponse);
   return (
     <Page>
       <ui-title-bar title="Shop2App Assignment">
-        {/* <button variant="primary" onClick={generateProduct}>
-          Generate a product
-        </button> */}
       </ui-title-bar>
       <BlockStack gap="500">
         <Layout>
@@ -158,19 +158,35 @@ export default function Index() {
             <Card>
               <BlockStack gap={500}>
                 <BlockStack gap={200}>
-                  <Text as="h2" variant="headingMd">
-                    Create a Product
-                  </Text>
+                  <div className="CreateProductFormContainer">
+                    <Text className="CreateProductFormTitle" as="h2" variant="headingMd">
+                      Create a Product
+                    </Text>
+                  </div>
                 </BlockStack>
                 <BlockStack gap={200}>
-                  <Form method="post">
-                    <input type="text" name="productName" placeholder="Enter Product Name" />
-                    <input type="text" name="price" placeholder="Price of Product" />
-                    <Button variant="primary" type="submit">Create Product</Button>
-                  </Form>
+                  <div className="CreateProductFormContainer">
+                    <Form method="post" ref={formRef}>
+                      <BlockStack gap={200}>
+                        <input className="CreateProductInput" type="text" name="productName" placeholder="Enter Product Name" />
+                        <input className="CreateProductInput" type="text" name="price" placeholder="Price of Product" />
+                        {(navigation.state === 'loading' || navigation.state === "submitting") && navigation?.formData?.get("productName") ? <button
+                          disabled={true}
+                          className="CreateProductButton"
+                          variant="primary"
+                          type="submit">  <Spinner accessibilityLabel="Creating Product Button" size="small" /></button> : <button
+                            className="CreateProductButton"
+                            variant="primary"
+                            type="submit">  Create Product</button>}
+
+                      </BlockStack>
+                    </Form>
+                  </div>
                 </BlockStack>
               </BlockStack>
             </Card>
+          </Layout.Section>
+          <Layout.Section>
             <Card>
               <BlockStack gap={500}>
                 <BlockStack gap={200}>
@@ -180,119 +196,22 @@ export default function Index() {
                 </BlockStack>
                 <BlockStack gap={200}>
                   {products === null ? <>
-                    <Spinner accessibilityLabel="Spinner example" size="large" />
-                    <Text as="p">
-                      Fetching Products
-                    </Text>
-                  </> : <ProductList products={products} />}
+                    <div className="FetchListPreloader">
+                      <Spinner accessibilityLabel="Spinner example" size="small" />
+                      <Text as="p">
+                        Fetching Products
+                      </Text>
+                    </div>             </> : <ProductList products={products} />}
                 </BlockStack>
               </BlockStack>
             </Card>
           </Layout.Section>
-          {/* <Layout.Section variant="oneThird">
-            <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    App template specs
-                  </Text>
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Framework
-                      </Text>
-                      <Link
-                        url="https://remix.run"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Remix
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Database
-                      </Text>
-                      <Link
-                        url="https://www.prisma.io/"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        Prisma
-                      </Link>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        Interface
-                      </Text>
-                      <span>
-                        <Link
-                          url="https://polaris.shopify.com"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          Polaris
-                        </Link>
-                        {", "}
-                        <Link
-                          url="https://shopify.dev/docs/apps/tools/app-bridge"
-                          target="_blank"
-                          removeUnderline
-                        >
-                          App Bridge
-                        </Link>
-                      </span>
-                    </InlineStack>
-                    <InlineStack align="space-between">
-                      <Text as="span" variant="bodyMd">
-                        API
-                      </Text>
-                      <Link
-                        url="https://shopify.dev/docs/api/admin-graphql"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphQL API
-                      </Link>
-                    </InlineStack>
-                  </BlockStack>
-                </BlockStack>
-              </Card>
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Next steps
-                  </Text>
-                  <List>
-                    <List.Item>
-                      Build an{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/getting-started/build-app-example"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        {" "}
-                        example app
-                      </Link>{" "}
-                      to get started
-                    </List.Item>
-                    <List.Item>
-                      Explore Shopify’s API with{" "}
-                      <Link
-                        url="https://shopify.dev/docs/apps/tools/graphiql-admin-api"
-                        target="_blank"
-                        removeUnderline
-                      >
-                        GraphiQL
-                      </Link>
-                    </List.Item>
-                  </List>
-                </BlockStack>
-              </Card>
-            </BlockStack>
-          </Layout.Section> */}
         </Layout>
       </BlockStack>
     </Page>
   );
 }
+
+export const links = () => [
+  { rel: "stylesheet", href: styles }
+]
