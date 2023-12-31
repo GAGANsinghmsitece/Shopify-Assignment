@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { json } from "@remix-run/node";
-import { useActionData, useNavigation, useSubmit, Form } from "@remix-run/react";
+import { useActionData, useNavigation, useSubmit, Form, useLoaderData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -13,14 +13,47 @@ import {
   Link,
   InlineStack,
   TextField,
-  Toast
+  Toast,
+  Spinner
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
+import ProductList from "../shared/components/ProductList/ProductList";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  return null;
+  try {
+    const { admin } = await authenticate.admin(request);
+    const response = await admin.graphql(
+      `#graphql
+      query {
+        products(first: 10, reverse: true) {
+          edges {
+            node {
+              id
+              title
+              variants(first: 1) {
+                edges {
+                  node {
+                    id
+                    title
+                    price
+                  }
+                }
+              }
+            }
+          }
+        }
+      }`,
+    );
+    const responseJson = await response.json();
+    return json({
+      products: responseJson?.data?.products?.edges
+    });
+  } catch (err) {
+    console.log("Encountering error while fetching product", err);
+    return json({
+      error: err.message
+    });
+  }
 };
 
 export const action = async ({ request }) => {
@@ -45,9 +78,6 @@ export const action = async ({ request }) => {
     }
 
     const { admin } = await authenticate.admin(request);
-    const color = ["Red", "Orange", "Yellow", "Green"][
-      Math.floor(Math.random() * 4)
-    ];
     const response = await admin.graphql(
       `#graphql
       mutation populateProduct($input: ProductInput!) {
@@ -90,15 +120,23 @@ export const action = async ({ request }) => {
       error: err.message
     });
   }
-  return null;
 };
 
 export default function Index() {
   const nav = useNavigation();
   const actionData = useActionData();
-  const submit = useSubmit();
-  const isLoading =
-    ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
+  const fetchedProductsResponse = useLoaderData();
+  const [products, setProduct] = useState(null);
+
+  useEffect(() => {
+    if (fetchedProductsResponse?.error) {
+      shopify.toast.show(fetchedProductsResponse.error);
+    } else if (fetchedProductsResponse?.products) {
+      setProduct(fetchedProductsResponse.products);
+    }
+  }, [fetchedProductsResponse]);
+
+
   useEffect(() => {
     if (actionData?.error) {
       shopify.toast.show(actionData.error);
@@ -106,8 +144,7 @@ export default function Index() {
       shopify.toast.show("Product created successfully!!!");
     }
   }, [actionData]);
-  const generateProduct = () => submit({}, { replace: true, method: "POST" });
-
+  console.log("Shop2App", products, fetchedProductsResponse);
   return (
     <Page>
       <ui-title-bar title="Shop2App Assignment">
@@ -119,84 +156,6 @@ export default function Index() {
         <Layout>
           <Layout.Section>
             <Card>
-              <BlockStack gap="500">
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">
-                    Congrats on creating a new Shopify app 🎉. It has hot reloading i
-                  </Text>
-                  <Text variant="bodyMd" as="p">
-                    This embedded app template uses{" "}
-                    <Link
-                      url="https://shopify.dev/docs/apps/tools/app-bridge"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      App Bridge
-                    </Link>{" "}
-                    interface examples like an{" "}
-                    <Link url="/app/additional" removeUnderline>
-                      additional page in the app nav
-                    </Link>
-                    , as well as an{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      Admin GraphQL
-                    </Link>{" "}
-                    mutation demo, to provide a starting point for app
-                    development.
-                  </Text>
-                </BlockStack>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">
-                    Get started with products
-                  </Text>
-                  <Text as="p" variant="bodyMd">
-                    Generate a product with GraphQL and get the JSON output for
-                    that product. Learn more about the{" "}
-                    <Link
-                      url="https://shopify.dev/docs/api/admin-graphql/latest/mutations/productCreate"
-                      target="_blank"
-                      removeUnderline
-                    >
-                      productCreate
-                    </Link>{" "}
-                    mutation in our API references.
-                  </Text>
-                </BlockStack>
-                <InlineStack gap="300">
-                  {/* <Button loading={isLoading} onClick={generateProduct}>
-                    Generate a product
-                  </Button> */}
-                  {/* {actionData?.product && (
-                    <Button
-                      url={`shopify:admin/products/${productId}`}
-                      target="_blank"
-                      variant="plain"
-                    >
-                      View product
-                    </Button>
-                  )} */}
-                </InlineStack>
-                {/* {actionData?.product && (
-                  <Box
-                    padding="400"
-                    background="bg-surface-active"
-                    borderWidth="025"
-                    borderRadius="200"
-                    borderColor="border"
-                    overflowX="scroll"
-                  >
-                    <pre style={{ margin: 0 }}>
-                      <code>{JSON.stringify(actionData.product, null, 2)}</code>
-                    </pre>
-                  </Box>
-                )} */}
-              </BlockStack>
-            </Card>
-            <Card>
               <BlockStack gap={500}>
                 <BlockStack gap={200}>
                   <Text as="h2" variant="headingMd">
@@ -207,8 +166,25 @@ export default function Index() {
                   <Form method="post">
                     <input type="text" name="productName" placeholder="Enter Product Name" />
                     <input type="text" name="price" placeholder="Price of Product" />
-                    <button type="submit">Create Product</button>
+                    <Button variant="primary" type="submit">Create Product</Button>
                   </Form>
+                </BlockStack>
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap={500}>
+                <BlockStack gap={200}>
+                  <Text as="h2" variant="headingMd">
+                    Existing Products
+                  </Text>
+                </BlockStack>
+                <BlockStack gap={200}>
+                  {products === null ? <>
+                    <Spinner accessibilityLabel="Spinner example" size="large" />
+                    <Text as="p">
+                      Fetching Products
+                    </Text>
+                  </> : <ProductList products={products} />}
                 </BlockStack>
               </BlockStack>
             </Card>
@@ -317,7 +293,6 @@ export default function Index() {
           </Layout.Section> */}
         </Layout>
       </BlockStack>
-      {/* {(isLoading && actionData?.error) ? <Toast content={actionData?.error} /> : null} */}
     </Page>
   );
 }

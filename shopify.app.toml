@@ -2,7 +2,7 @@
 
 name = "integrated-merchant-app"
 client_id = "c5f98214f555a32dc1aaf6d982e1c407"
-application_url = "https://distribute-hormone-platinum-tournament.trycloudflare.com"
+application_url = "https://build-candy-ordered-albert.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -11,9 +11,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://distribute-hormone-platinum-tournament.trycloudflare.com/auth/callback",
-  "https://distribute-hormone-platinum-tournament.trycloudflare.com/auth/shopify/callback",
-  "https://distribute-hormone-platinum-tournament.trycloudflare.com/api/auth/callback"
+  "https://build-candy-ordered-albert.trycloudflare.com/auth/callback",
+  "https://build-candy-ordered-albert.trycloudflare.com/auth/shopify/callback",
+  "https://build-candy-ordered-albert.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
