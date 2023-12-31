@@ -13,6 +13,7 @@ import {
   Link,
   InlineStack,
   TextField,
+  Toast
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 
@@ -23,46 +24,72 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  // const { admin } = await authenticate.admin(request);
-  // const color = ["Red", "Orange", "Yellow", "Green"][
-  //   Math.floor(Math.random() * 4)
-  // ];
-  // const response = await admin.graphql(
-  //   `#graphql
-  //     mutation populateProduct($input: ProductInput!) {
-  //       productCreate(input: $input) {
-  //         product {
-  //           id
-  //           title
-  //           handle
-  //           status
-  //           variants(first: 10) {
-  //             edges {
-  //               node {
-  //                 id
-  //                 price
-  //                 barcode
-  //                 createdAt
-  //               }
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }`,
-  //   {
-  //     variables: {
-  //       input: {
-  //         title: `${color} Snowboard`,
-  //         variants: [{ price: Math.random() * 100 }],
-  //       },
-  //     },
-  //   }
-  // );
-  // const responseJson = await response.json();
+  try {
 
-  // return json({
-  //   product: responseJson.data.productCreate.product,
-  // });
+    //parsing request Body
+    const formData = await request.formData();
+    const productName = formData.get("productName");
+    const price = formData.get("price");
+
+    //validating parameters
+    if (!productName || !price) {
+      throw new Error(
+        "Product Name and Price are required in order to create a product"
+      );
+    }
+    const parsedPrice = parseInt(price);
+    if (isNaN(price) || isNaN(price)) {
+      throw new Error(
+        "Price can only include number"
+      );
+    }
+
+    const { admin } = await authenticate.admin(request);
+    const color = ["Red", "Orange", "Yellow", "Green"][
+      Math.floor(Math.random() * 4)
+    ];
+    const response = await admin.graphql(
+      `#graphql
+      mutation populateProduct($input: ProductInput!) {
+        productCreate(input: $input) {
+          product {
+            id
+            title
+            handle
+            status
+            variants(first: 10) {
+              edges {
+                node {
+                  id
+                  price
+                  barcode
+                  createdAt
+                }
+              }
+            }
+          }
+        }
+      }`,
+      {
+        variables: {
+          input: {
+            title: productName,
+            variants: [{ price: price }],
+          },
+        },
+      }
+    );
+    const responseJson = await response.json();
+    console.log(responseJson);
+    return json({
+      product: responseJson.data.productCreate.product,
+    });
+  } catch (err) {
+    console.log("Error while creating product", err);
+    return json({
+      error: err.message
+    });
+  }
   return null;
 };
 
@@ -72,16 +99,13 @@ export default function Index() {
   const submit = useSubmit();
   const isLoading =
     ["loading", "submitting"].includes(nav.state) && nav.formMethod === "POST";
-  const productId = actionData?.product?.id.replace(
-    "gid://shopify/Product/",
-    ""
-  );
-
   useEffect(() => {
-    if (productId) {
-      shopify.toast.show("Product created");
+    if (actionData?.error) {
+      shopify.toast.show(actionData.error);
+    } else if (actionData?.product) {
+      shopify.toast.show("Product created successfully!!!");
     }
-  }, [productId]);
+  }, [actionData]);
   const generateProduct = () => submit({}, { replace: true, method: "POST" });
 
   return (
@@ -146,7 +170,7 @@ export default function Index() {
                   {/* <Button loading={isLoading} onClick={generateProduct}>
                     Generate a product
                   </Button> */}
-                  {actionData?.product && (
+                  {/* {actionData?.product && (
                     <Button
                       url={`shopify:admin/products/${productId}`}
                       target="_blank"
@@ -154,9 +178,9 @@ export default function Index() {
                     >
                       View product
                     </Button>
-                  )}
+                  )} */}
                 </InlineStack>
-                {actionData?.product && (
+                {/* {actionData?.product && (
                   <Box
                     padding="400"
                     background="bg-surface-active"
@@ -169,7 +193,7 @@ export default function Index() {
                       <code>{JSON.stringify(actionData.product, null, 2)}</code>
                     </pre>
                   </Box>
-                )}
+                )} */}
               </BlockStack>
             </Card>
             <Card>
@@ -182,7 +206,7 @@ export default function Index() {
                 <BlockStack gap={200}>
                   <Form method="post">
                     <input type="text" name="productName" placeholder="Enter Product Name" />
-                    <input type="number" name="price" placeholder="Price of Product" />
+                    <input type="text" name="price" placeholder="Price of Product" />
                     <button type="submit">Create Product</button>
                   </Form>
                 </BlockStack>
@@ -293,6 +317,7 @@ export default function Index() {
           </Layout.Section> */}
         </Layout>
       </BlockStack>
+      {/* {(isLoading && actionData?.error) ? <Toast content={actionData?.error} /> : null} */}
     </Page>
   );
 }
